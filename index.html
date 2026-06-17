@@ -1,49 +1,1059 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>DexFlex</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background: #0a0a0a;
-      color: #e5e5e5;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 100vh;
-      text-align: center;
-    }
-    .container { padding: 2rem; }
-    h1 {
-      font-size: 4rem;
-      margin: 0 0 0.5rem;
-      letter-spacing: -0.02em;
-    }
-    p {
-      font-size: 1.2rem;
-      color: #888;
-      margin: 0;
-    }
-    .tbd {
-      margin-top: 2rem;
-      padding: 0.5rem 1rem;
-      border: 1px solid #333;
-      border-radius: 4px;
-      display: inline-block;
-      font-size: 0.9rem;
-      color: #666;
-      letter-spacing: 0.1em;
-    }
-  </style>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <title>DexFLEX: Contact-Aware Foundation Controller for Command-Guided Dexterity</title>
+    <meta name="description" content="DexFLEX is a reusable, contact-aware low-level controller that turns high-level fingertip-motion drafts (from teleoperation or a learned policy) into contact-stable joint commands, improving robustness without retraining.">
+
+    <!-- Open Graph / social preview (anonymous, no author info) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="DexFLEX: Contact-Aware Foundation Controller for Command-Guided Dexterity">
+    <meta property="og:description" content="A frozen contact-aware controller that re-decides the contact behavior of any fingertip-motion draft, raising real-world teleoperation success from 29.2% to 78.3% and serving as an action interface for visuomotor policy learning, all without retraining.">
+    <meta property="og:image" content="assets/media/images/pull_figure.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="DexFLEX: Contact-Aware Foundation Controller for Command-Guided Dexterity">
+    <meta name="twitter:description" content="Contact-aware low-level control that follows high-level commands while preserving grasp stability.">
+    <meta name="twitter:image" content="assets/media/images/pull_figure.png">
+
+    <!-- Inline SVG favicon (terracotta brand mark; avoids a 404) -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%23c96442'/%3E%3Ctext x='16' y='23' text-anchor='middle' font-family='Georgia,serif' font-size='20' font-weight='700' fill='%23faf9f5'%3EF%3C/text%3E%3C/svg%3E">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght,SOFT@9..144,300..700,100&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <style type="text/css">
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+    /* Claude / Anthropic-style palette (shared with the project's other pages) */
+    --primary: #c96442;         /* clay-interactive — terracotta */
+    --primary-dark: #b0522f;
+    --contrary: #788c5d;        /* olive — secondary accent */
+    --contrary-dark: #5f7048;
+    --text: #262624;            /* gray-800 */
+    --text-secondary: #5e5d59;  /* gray-600 */
+    --text-light: #6f6e67;      /* a11y-bumped (≥4.5:1 on cream) — was #87867f */
+    --text-faint: #87867f;      /* original light — only for ≥18px labels */
+    --bg: #faf9f5;              /* gray-050 — warm cream */
+    --bg-alt: #f0eee6;          /* gray-150 */
+    --border: #e8e6dc;          /* gray-200 */
+    --border-light: #f0eee6;
+    --navbar-bg: rgba(250, 249, 245, 0.88);
+    --font-serif: 'Fraunces', 'Tiempos Text', 'Iowan Old Style', Georgia, serif;
+    --font-sans: 'Inter', -apple-system, 'Helvetica Neue', Arial, sans-serif;
+    --font-mono: 'JetBrains Mono', 'SF Mono', ui-monospace, Menlo, monospace;
+}
+
+html { scroll-behavior: smooth; scroll-padding-top: 72px; }
+
+body {
+    font-family: var(--font-serif);
+    font-optical-sizing: auto;
+    font-variation-settings: "SOFT" 50;
+    font-size: 17px;
+    line-height: 1.65;
+    color: var(--text);
+    background: var(--bg);
+    font-feature-settings: "kern", "liga";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+a { color: var(--primary); text-decoration: none; transition: color 0.2s; }
+a:hover { color: var(--primary-dark); }
+img { max-width: 100%; height: auto; display: block; }
+
+.container { max-width: 1040px; margin: 0 auto; padding: 0 24px; }
+.narrow { max-width: 760px; margin-left: auto; margin-right: auto; }
+
+.section { padding: 72px 0; background: var(--bg); }
+.section-alt { background: var(--bg-alt); }
+
+.section-title {
+    font-family: var(--font-serif);
+    font-size: 2.2rem;
+    color: var(--text);
+    margin-bottom: 16px;
+    font-weight: 400;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    text-align: center;
+    font-variation-settings: "SOFT" 80, "opsz" 72;
+}
+.section-title::first-letter { color: var(--primary); }
+.section-lead {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    color: var(--text-secondary);
+    text-align: center;
+    max-width: 760px;
+    margin: 0 auto 40px;
+    line-height: 1.6;
+}
+.section-lead strong { color: var(--primary); font-weight: 600; }
+
+:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; border-radius: 4px; }
+
+/* ---------- Navigation ---------- */
+.navbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 1000;
+    background: var(--navbar-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--border-light);
+    height: 60px;
+    display: flex;
+    align-items: center;
+}
+.navbar .container { display: flex; justify-content: space-between; align-items: center; width: 100%; }
+.nav-brand {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+.nav-brand .brand-dex { color: var(--text); }
+.nav-brand .brand-flex { color: var(--primary); }
+.nav-brand:hover .brand-flex { color: var(--primary-dark); }
+.nav-links { display: flex; gap: 24px; }
+.nav-links a {
+    font-family: var(--font-sans);
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    position: relative;
+}
+.nav-links a::after {
+    content: '';
+    position: absolute;
+    bottom: -4px; left: 0;
+    width: 0; height: 2px;
+    background: var(--primary);
+    transition: width 0.2s;
+}
+.nav-links a:hover { color: var(--primary); }
+.nav-links a:hover::after,
+.nav-links a.active::after { width: 100%; }
+.nav-links a.active { color: var(--primary); }
+
+/* ---------- Hero ---------- */
+.hero { padding: 128px 0 44px; text-align: center; }
+.hero-title {
+    font-family: var(--font-serif);
+    font-size: clamp(2.6rem, 7vw, 4.6rem);
+    font-weight: 400;
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+    margin: 0 auto 10px;
+    font-variation-settings: "SOFT" 100, "opsz" 144;
+}
+.hero-title .brand-dex { color: var(--text); font-weight: 600; }
+.hero-title .brand-flex { color: var(--primary); font-weight: 600; }
+.hero-sub {
+    font-family: var(--font-serif);
+    font-size: clamp(1.1rem, 2.4vw, 1.5rem);
+    font-weight: 400;
+    color: var(--text);
+    max-width: 22em;
+    margin: 0 auto 18px;
+    line-height: 1.3;
+    letter-spacing: -0.015em;
+    font-variation-settings: "SOFT" 60, "opsz" 60;
+}
+.hero-byline {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.hero-note {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.04em;
+    color: var(--text-light);
+    margin-bottom: 22px;
+}
+.hero-tagline {
+    font-family: var(--font-sans);
+    font-size: 1.05rem;
+    color: var(--text-secondary);
+    max-width: 680px;
+    margin: 0 auto 22px;
+    line-height: 1.6;
+}
+.hero-tagline strong { color: var(--primary); font-weight: 600; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin: 0 auto 28px; }
+.chip {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    padding: 4px 13px;
+}
+.btn-row { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 9px 20px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    color: var(--text-secondary);
+    background: var(--bg);
+    font-family: var(--font-sans);
+    font-size: 0.92rem;
+    font-weight: 500;
+    letter-spacing: -0.005em;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.btn:hover { border-color: var(--primary); color: var(--bg); background: var(--primary); }
+.btn svg { width: 17px; height: 17px; }
+.btn.primary { border-color: var(--primary); color: var(--bg); background: var(--primary); }
+.btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+
+/* ---------- Figures ---------- */
+.figure { margin: 0 auto; text-align: center; }
+.figure img {
+    width: 100%;
+    border-radius: 8px;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid var(--border-light);
+    background: #fff;
+}
+img.zoomable { cursor: zoom-in; }
+.caption {
+    font-family: var(--font-sans);
+    font-size: 0.88rem;
+    color: var(--text-light);
+    line-height: 1.6;
+    margin: 16px auto 0;
+    max-width: 860px;
+    text-align: left;
+}
+.caption b, .caption strong { color: var(--text-secondary); font-weight: 600; }
+.zoom-hint {
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    color: var(--text-light);
+    text-align: center;
+    margin-top: 8px;
+}
+.fig-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+
+/* ---------- Stats strip ---------- */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+.stat { text-align: center; padding: 8px 6px; }
+.stat-num {
+    font-family: var(--font-serif);
+    font-size: 2.6rem;
+    font-weight: 400;
+    color: var(--primary);
+    line-height: 1;
+    letter-spacing: -0.03em;
+    font-variation-settings: "opsz" 90;
+}
+.stat-label {
+    font-family: var(--font-sans);
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    margin-top: 10px;
+    line-height: 1.45;
+}
+.stat-label strong { color: var(--text); font-weight: 600; }
+
+/* ---------- Abstract ---------- */
+.abstract-body { text-align: justify; color: var(--text); line-height: 1.75; font-size: 1.05rem; }
+.abstract-body strong { color: var(--primary); font-weight: 600; }
+
+/* ---------- Video stage (16:9 overview + sim pair) ---------- */
+.gallery { max-width: 960px; margin: 0 auto; }
+.video-frame {
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.10);
+    background: #000;
+    aspect-ratio: 16 / 9;
+}
+.video-frame video { width: 100%; height: 100%; display: block; }
+.audio-note {
+    text-align: center; margin-top: 12px;
+    font-family: var(--font-sans); font-size: 0.85rem; color: var(--text-light);
+}
+.frame-16x9 {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.10);
+    aspect-ratio: 16 / 9;
+}
+.frame-16x9 video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.frame-cap {
+    font-family: var(--font-sans); font-size: 0.9rem; color: var(--text-secondary);
+    text-align: center; margin-top: 12px; line-height: 1.5;
+}
+.frame-cap .x { color: var(--primary-dark); font-weight: 600; }
+.frame-cap .ok { color: var(--contrary-dark); font-weight: 600; }
+
+/* ---------- Method pillars ---------- */
+.pillars { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; margin-top: 40px; }
+.pillar {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 24px 22px;
+}
+.section-alt .pillar { background: #fdfcf9; }
+.pillar-num {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--primary);
+    letter-spacing: 0.05em;
+}
+.pillar-title {
+    font-family: var(--font-serif);
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: var(--text);
+    margin: 8px 0 8px;
+    letter-spacing: -0.015em;
+    line-height: 1.25;
+}
+.pillar-desc { font-family: var(--font-sans); font-size: 0.92rem; color: var(--text-secondary); line-height: 1.6; }
+.pillar-desc em { color: var(--text); font-style: italic; }
+
+/* ---------- Motion-primitive grid (4:3 tiles) ---------- */
+.motion-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+.motion-cell { margin: 0; text-align: center; }
+.m-frame {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+.m-frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.m-name {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: 10px;
+}
+
+/* ---------- Before/after comparison ---------- */
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 940px; margin: 0 auto; }
+.compare-item { margin: 0; }
+.cmp-frame {
+    position: relative;
+    aspect-ratio: 4 / 3;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 6px 26px rgba(0, 0, 0, 0.12);
+}
+.compare-item.is-fail .cmp-frame { box-shadow: inset 0 0 0 2px rgba(176, 82, 47, 0.55), 0 6px 26px rgba(0, 0, 0, 0.12); }
+.compare-item.is-pass .cmp-frame { box-shadow: inset 0 0 0 2px rgba(95, 112, 72, 0.6), 0 6px 26px rgba(0, 0, 0, 0.12); }
+.cmp-frame video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; display: block; }
+.cmp-cap {
+    font-family: var(--font-sans); font-size: 0.92rem; color: var(--text-secondary);
+    text-align: center; margin-top: 12px; line-height: 1.5;
+}
+.tag { font-weight: 600; }
+.tag-fail { color: var(--primary-dark); }
+.tag-pass { color: var(--contrary-dark); }
+
+/* ---------- Speed badge ---------- */
+.speed-badge {
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    font-family: var(--font-mono); font-size: 0.7rem; font-weight: 600;
+    color: #fff; background: rgba(38, 38, 36, 0.55);
+    padding: 3px 8px; border-radius: 999px; letter-spacing: 0.02em;
+}
+
+/* ---------- Tabbed video gallery (teleop + policy) ---------- */
+.tabs { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 18px; }
+.tab {
+    font-family: var(--font-sans);
+    font-size: 0.9rem;
+    font-weight: 500;
+    padding: 7px 16px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.section-alt .tab { background: #fdfcf9; }
+.tab:hover { border-color: var(--primary); color: var(--primary); }
+.tab.active { background: var(--primary); border-color: var(--primary); color: var(--bg); }
+.task-desc {
+    font-family: var(--font-sans);
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 18px;
+    min-height: 1.4em;
+}
+.stage {
+    position: relative;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #000;
+    box-shadow: 0 6px 30px rgba(0, 0, 0, 0.10);
+    aspect-ratio: 4 / 3;
+}
+.stage video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; display: block; }
+.clip-label {
+    font-family: var(--font-mono);
+    font-size: 0.78rem;
+    letter-spacing: 0.03em;
+    color: var(--text-light);
+    text-align: center;
+    margin-top: 14px;
+}
+.clip-label .hl { color: var(--primary); font-weight: 600; }
+
+/* ---------- Results table ---------- */
+.results-wrap { max-width: 900px; margin: 36px auto 0; overflow-x: auto; }
+.results-table { width: 100%; border-collapse: collapse; font-family: var(--font-sans); font-size: 0.9rem; }
+.results-table caption {
+    caption-side: top; text-align: left; font-size: 0.95rem; color: var(--text);
+    font-weight: 600; margin-bottom: 12px;
+}
+.results-table th, .results-table td { padding: 9px 10px; text-align: center; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.results-table thead th { font-weight: 600; color: var(--text-secondary); border-bottom: 2px solid var(--border); }
+.results-table th.method, .results-table td.method { text-align: left; }
+.results-table tbody tr.best { background: rgba(201, 100, 66, 0.07); }
+.results-table tbody tr.best td { font-weight: 600; }
+.results-table tbody tr.best td.method { color: var(--primary); }
+.results-note { font-family: var(--font-sans); font-size: 0.82rem; color: var(--text-light); margin-top: 12px; text-align: left; max-width: 900px; }
+
+/* ---------- Result callouts ---------- */
+.callout-row { display: flex; flex-wrap: wrap; gap: 14px; justify-content: center; margin-top: 28px; }
+.callout {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 22px;
+    text-align: center;
+    min-width: 160px;
+}
+.section-alt .callout { background: #fdfcf9; }
+.callout .big { font-family: var(--font-serif); font-size: 1.9rem; color: var(--primary); letter-spacing: -0.02em; line-height: 1; }
+.callout .lbl { font-family: var(--font-sans); font-size: 0.8rem; color: var(--text-secondary); margin-top: 8px; line-height: 1.4; }
+
+/* ---------- Hardware note ---------- */
+.hw-note {
+    font-family: var(--font-sans); font-size: 0.82rem; color: var(--text-light);
+    text-align: center; max-width: 760px; margin: 22px auto 0; line-height: 1.55;
+}
+
+/* ---------- BibTeX ---------- */
+.bibtex-wrap { position: relative; max-width: 860px; margin: 0 auto; }
+.bibtex {
+    font-family: var(--font-mono);
+    font-size: 0.84rem;
+    line-height: 1.7;
+    color: var(--text);
+    background: var(--bg-alt);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 22px 24px;
+    overflow-x: auto;
+    white-space: pre;
+    tab-size: 2;
+}
+.section-alt .bibtex { background: #fdfcf9; }
+.copy-btn {
+    position: absolute;
+    top: 12px; right: 12px;
+    font-family: var(--font-sans);
+    font-size: 0.78rem;
+    font-weight: 500;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: var(--bg);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.copy-btn:hover { background: var(--primary); color: var(--bg); border-color: var(--primary); }
+
+/* ---------- Footer ---------- */
+.footer {
+    padding: 40px 0;
+    border-top: 1px solid var(--border);
+    text-align: center;
+    color: var(--text-light);
+    font-family: var(--font-sans);
+    font-size: 0.85rem;
+    background: var(--bg);
+    line-height: 1.7;
+}
+.footer .sparkle { color: var(--primary); }
+.footer .totop { color: var(--text-secondary); font-weight: 500; }
+.footer .totop:hover { color: var(--primary); }
+
+/* ---------- Lightbox ---------- */
+.lightbox {
+    position: fixed; inset: 0; z-index: 2000;
+    background: rgba(20, 19, 17, 0.92);
+    display: none; align-items: center; justify-content: center;
+    padding: 28px; cursor: zoom-out;
+}
+.lightbox.open { display: flex; }
+.lightbox img { max-width: 100%; max-height: 100%; border-radius: 6px; box-shadow: 0 12px 50px rgba(0, 0, 0, 0.5); cursor: default; }
+
+/* ---------- Scroll reveal (only when JS + motion allowed) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+    html.js .reveal { opacity: 0; transform: translateY(12px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    html.js .reveal.in-view { opacity: 1; transform: none; }
+}
+
+/* ---------- Responsive ---------- */
+@media (max-width: 860px) {
+    .pillars { grid-template-columns: 1fr; }
+    .fig-pair { grid-template-columns: 1fr; gap: 32px; }
+    .motion-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 768px) {
+    .section { padding: 48px 0; }
+    .hero { padding: 104px 0 32px; }
+    .section-title { font-size: 1.55rem; }
+    .stats { grid-template-columns: repeat(2, 1fr); gap: 28px 12px; }
+    .nav-links { gap: 14px; }
+    .nav-links a { font-size: 0.82rem; }
+    .stat-num { font-size: 2.1rem; }
+}
+@media (max-width: 640px) {
+    .compare { grid-template-columns: 1fr; }
+}
+@media (max-width: 480px) {
+    .container { padding: 0 16px; }
+    .nav-brand { font-size: 1.05rem; }
+    .nav-links { display: none; }
+    .motion-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* Pause animated transitions for users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    .stage video, .navbar, .btn, .tab { transition: none !important; }
+}
+    </style>
 </head>
+
 <body>
-  <div class="container">
-    <h1>DexFlex</h1>
-    <p>Project page coming soon</p>
-    <div class="tbd">TBD</div>
-  </div>
+
+<nav class="navbar">
+    <div class="container">
+        <a class="nav-brand" href="#top"><span class="brand-dex">Dex</span><span class="brand-flex">FLEX</span></a>
+        <div class="nav-links">
+            <a href="#abstract">Abstract</a>
+            <a href="#video">Video</a>
+            <a href="#method">Method</a>
+            <a href="#motions">Motions</a>
+            <a href="#robustness">Robustness</a>
+            <a href="#teleop">Teleoperation</a>
+            <a href="#policy">Policy</a>
+            <a href="#bibtex">BibTeX</a>
+        </div>
+    </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header id="top" class="hero">
+    <div class="container">
+        <h1 class="hero-title"><span class="brand-dex">Dex</span><span class="brand-flex">FLEX</span></h1>
+        <p class="hero-sub">Contact-Aware Foundation Controller for Command-Guided Dexterity</p>
+        <p class="hero-byline">Anonymous Authors</p>
+        <p class="hero-tagline">A reusable, contact-aware low-level controller that turns high-level fingertip-motion drafts (from teleoperation or a learned policy) into contact-stable joint commands, improving robustness <strong>without retraining</strong>.</p>
+        <!-- Anonymous submission: deliberately no arXiv / code / contact links (would deanonymize). -->
+        <div class="btn-row">
+            <a class="btn primary" href="assets/pdf/2215_DexFLEX_Contact_Aware_Fou.pdf" target="_blank" rel="noopener">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                Paper (PDF)
+            </a>
+            <a class="btn" href="#video">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                Overview Video
+            </a>
+        </div>
+    </div>
+</header>
+
+<!-- ================= TEASER FIGURE ================= -->
+<section class="section" style="padding-top: 28px;">
+    <div class="container reveal">
+        <figure class="figure">
+            <img src="assets/media/images/pull_figure.png" alt="DexFLEX overview: a fingertip-motion draft from teleoperation or a learned policy is re-decided by DexFLEX into a contact-stable action, with real-world teleoperation and policy-learning results." fetchpriority="high" class="zoomable">
+            <figcaption class="caption"><b>DexFLEX</b> takes an upstream fingertip-motion <em>draft</em> (from teleoperation or a learned policy) and re-decides its contact behavior, emitting contact-stable joint commands. The same frozen controller boosts real-world teleoperation and serves as a low-level action interface for visuomotor policy learning.</figcaption>
+        </figure>
+    </div>
+</section>
+
+<!-- ================= STATS STRIP ================= -->
+<section class="section section-alt" style="padding: 44px 0;">
+    <div class="container">
+        <div class="stats">
+            <div class="stat"><div class="stat-num">78.3%</div><div class="stat-label">real-world teleoperation success<br>(up from <strong>29.2%</strong> raw teleop)</div></div>
+            <div class="stat"><div class="stat-num">2.0&times;</div><div class="stat-label">contact stability: normalized holding time (0.42 &rarr; 0.85)</div></div>
+            <div class="stat"><div class="stat-num">46.7%</div><div class="stat-label">avg visuomotor policy-learning success</div></div>
+            <div class="stat"><div class="stat-num">3.5&times;</div><div class="stat-label">over direct joint-action prediction</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= ABSTRACT ================= -->
+<section id="abstract" class="section">
+    <div class="container reveal">
+        <h2 class="section-title">Abstract</h2>
+        <div class="narrow">
+            <p class="abstract-body">
+                Dexterous robot hands can receive useful motion intent from teleoperation or learned policies, but successful execution also depends on contact decisions that these commands rarely specify. We introduce <strong>DexFLEX</strong>, a <strong>contact-aware foundation controller</strong> that turns upstream fingertip-motion drafts into <strong>contact-consistent joint commands</strong>. Instead of treating a draft as a trajectory to copy, DexFLEX treats it as evidence about intent: from the current tactile-proprioceptive state, it proposes feasible short-horizon motion chunks, predicts their contact consequences, and selects the candidate that best follows the command while preserving future contact stability. At inference time, a simple <strong>Draft-Dream-Select</strong> procedure combines pure-prior proposals for recovery with draft-seeded proposals for responsiveness, then decodes the selected motion into executable joint-space targets. Across degraded-command simulation, real-world shared control, and visuomotor policy learning, the same trained controller improves robustness <strong>without retraining</strong>, increasing real-world teleoperation success from <strong>29.2%</strong> with raw teleop to <strong>78.3%</strong>, and reaching <strong>46.7%</strong> policy-learning success, <strong>3.5&times;</strong> direct joint-action prediction, and <strong>1.56&times;</strong> prior-only correction.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- ================= OVERVIEW VIDEO ================= -->
+<section id="video" class="section section-alt">
+    <div class="container reveal">
+        <h2 class="section-title">Overview Video</h2>
+        <p class="section-lead">A tour of DexFLEX: the contact-proprioceptive state, the <strong>Draft-Dream-Select</strong> loop, and results across simulation, real-world teleoperation, and policy learning.</p>
+        <div class="gallery">
+            <div class="video-frame">
+                <video controls playsinline preload="none" poster="assets/media/posters/DexFLEX_main_video.jpg">
+                    <source src="assets/media/videos/DexFLEX_main_video.mp4" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+            </div>
+            <p class="audio-note">🔊 This video contains audio.</p>
+        </div>
+    </div>
+</section>
+
+<!-- ================= METHOD ================= -->
+<section id="method" class="section">
+    <div class="container reveal">
+        <h2 class="section-title">Method</h2>
+        <p class="section-lead">DexFLEX treats a draft not as a trajectory to copy but as <strong>evidence about intent</strong>: it proposes feasible short-horizon motions, predicts their contact consequences, and selects the candidate that best follows the command while keeping future contact stable.</p>
+        <figure class="figure">
+            <img src="assets/media/images/pipeline.png" alt="The DexFLEX architecture: state encoding from proprioception and tactile history, a state-conditioned motion prior, a latent world model predicting contact consequences, consequence-aware scoring, and a contact-aware action decoder." loading="lazy" class="zoomable">
+            <figcaption class="caption"><b>The DexFLEX pipeline.</b> From a tactile-proprioceptive state, a consistency-flow motion prior proposes short-horizon fingertip-motion chunks (pure-prior and draft-seeded). A latent world model predicts each chunk's contact consequence; a contrastive scorer ranks them; the winner is decoded to joint-space targets by an inverse-dynamics decoder, looped at a receding horizon.</figcaption>
+        </figure>
+        <p class="zoom-hint">Click the diagram to enlarge.</p>
+        <div class="pillars">
+            <div class="pillar">
+                <div class="pillar-num">01</div>
+                <div class="pillar-title">State-conditioned motion proposals</div>
+                <div class="pillar-desc">We encode proprioception and per-fingertip FlexiTac tactile signals into a <em>contact-proprioceptive state</em>, then use a consistency-flow motion prior to propose feasible short-horizon fingertip-motion chunks, using a <em>pure-prior</em> branch for recovery and a <em>draft-seeded</em> branch for responsiveness.</div>
+            </div>
+            <div class="pillar">
+                <div class="pillar-num">02</div>
+                <div class="pillar-title">Consequence-aware scoring</div>
+                <div class="pillar-desc">A latent world model rolls out the <em>contact consequence</em> of each candidate chunk, and a learned contrastive scorer ranks candidates by how faithfully they follow the command while preserving contact stability.</div>
+            </div>
+            <div class="pillar">
+                <div class="pillar-num">03</div>
+                <div class="pillar-title">Draft-Dream-Select execution</div>
+                <div class="pillar-desc">At inference we form a candidate set from both branches, <em>dream</em> their consequences, <em>select</em> the best chunk, and decode it to executable joint-space targets through an inverse-dynamics decoder, repeating at a receding horizon.</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= MOTION PRIMITIVES ================= -->
+<section id="motions" class="section section-alt">
+    <div class="container reveal">
+        <h2 class="section-title">Contact-Aware Motion Primitives</h2>
+        <p class="section-lead">The motion prior captures a vocabulary of contact-rich behaviors (grasping, regrasping, releasing, reorienting, striking, and scooping) that DexFLEX recombines on the fly to honor a command <strong>without losing the object</strong>.</p>
+        <div class="motion-grid" id="motion-grid"></div>
+    </div>
+</section>
+
+<!-- ================= Q1: ROBUSTNESS ================= -->
+<section id="robustness" class="section">
+    <div class="container reveal">
+        <h2 class="section-title">Robustness to Degraded Commands</h2>
+        <p class="section-lead">We corrupt the command stream four ways (additive noise, command scaling, delay, and support-finger removal), then measure whether the controller still <strong>recovers the operator's intent</strong> instead of merely damping motion.</p>
+        <figure class="figure">
+            <img src="assets/media/images/robustness_sim.png" alt="Robustness under command degradation: stable rollout duration, task progress, and intent recovery error across five corruption conditions and five methods." loading="lazy" class="zoomable">
+            <figcaption class="caption"><b>Robustness under command degradation.</b> Across five corruption conditions and five methods, DexFLEX best preserves rollout duration and task progress while minimizing intent-recovery error, most dramatically under <b>support-finger removal</b>, where naive methods drop the object. Baselines: Raw Command, Filter, DexGen, and DexFLEX w/o Tactile.</figcaption>
+        </figure>
+        <div class="fig-pair" style="margin-top: 40px;">
+            <figure class="compare-item is-fail" style="margin:0;">
+                <div class="frame-16x9"><video data-auto data-src="assets/media/videos/sim/sim_noise_expert.mp4" preload="none" muted loop playsinline></video></div>
+                <figcaption class="frame-cap"><span class="x">Expert under command noise ✗</span><br>motion degrades, contact is lost</figcaption>
+            </figure>
+            <figure class="compare-item is-pass" style="margin:0;">
+                <div class="frame-16x9"><video data-auto data-src="assets/media/videos/sim/sim_dexflex.mp4" preload="none" muted loop playsinline></video></div>
+                <figcaption class="frame-cap"><span class="ok">DexFLEX, same corruption ✓</span><br>recovers intent, keeps contact stable</figcaption>
+            </figure>
+        </div>
+    </div>
+</section>
+
+<!-- ================= Q2: TELEOPERATION ================= -->
+<section id="teleop" class="section section-alt">
+    <div class="container reveal">
+        <h2 class="section-title">Shared Control on Real Hardware</h2>
+        <p class="section-lead">Same operator, same task, same teleop interface. DexFLEX re-decides the contact behavior in the loop, turning a dropped hammer into a stable, repeatable strike.</p>
+
+        <!-- Before / after hook -->
+        <div class="compare">
+            <figure class="compare-item is-fail">
+                <div class="cmp-frame">
+                    <span class="speed-badge">×4</span>
+                    <video data-auto data-src="assets/media/videos/hammer_direct_teleop_fail_x4.mp4" preload="none" muted loop playsinline></video>
+                </div>
+                <figcaption class="cmp-cap"><span class="tag tag-fail">Raw teleop ✗</span> &nbsp;Hand slips, hammer drops</figcaption>
+            </figure>
+            <figure class="compare-item is-pass">
+                <div class="cmp-frame">
+                    <span class="speed-badge">×4</span>
+                    <video data-auto data-src="assets/media/videos/hammer_dexflex_success_teleop_x4_.mp4" preload="none" muted loop playsinline></video>
+                </div>
+                <figcaption class="cmp-cap"><span class="tag tag-pass">DexFLEX ✓</span> &nbsp;Contact-stable strike</figcaption>
+            </figure>
+        </div>
+
+        <!-- Six-task gallery -->
+        <h3 class="section-title" style="font-size:1.5rem; margin-top:64px;">Six Tool-Use Tasks</h3>
+        <p class="section-lead" style="margin-bottom:24px;">Across six contact-rich tool-use tasks, DexFLEX raises average teleoperation success from <strong>29.2%</strong> with raw teleop to <strong>78.3%</strong>, and nearly doubles normalized holding time from <strong>0.42</strong> to <strong>0.85</strong>.</p>
+        <div class="gallery" id="teleop-gallery"></div>
+
+        <!-- Full results table (Table 2, reproduced as native HTML) -->
+        <div class="results-wrap">
+            <table class="results-table">
+                <caption>Real-world teleoperation results: per-task success rate (SR, %) and averages.</caption>
+                <thead>
+                    <tr>
+                        <th class="method">Method</th>
+                        <th>Brush</th><th>Nut</th><th>Hammer</th><th>Screwdrv.</th><th>Spatula</th><th>Toast</th>
+                        <th>Avg SR&nbsp;↑</th><th>Avg CT&nbsp;↓</th><th>Avg NHT&nbsp;↑</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr><td class="method">Raw Teleop</td><td>50</td><td>30</td><td>40</td><td>30</td><td>15</td><td>10</td><td>29.2</td><td>27.5</td><td>0.42</td></tr>
+                    <tr><td class="method">Filter</td><td>60</td><td>40</td><td>50</td><td>40</td><td>25</td><td>20</td><td>39.2</td><td>33.8</td><td>0.55</td></tr>
+                    <tr><td class="method">DexGen</td><td>70</td><td>55</td><td>60</td><td>55</td><td>40</td><td>35</td><td>52.5</td><td>31.2</td><td>0.65</td></tr>
+                    <tr><td class="method">DexFLEX w/o Tactile</td><td>75</td><td>60</td><td>65</td><td>60</td><td>50</td><td>45</td><td>59.2</td><td>30.8</td><td>0.71</td></tr>
+                    <tr class="best"><td class="method">DexFLEX</td><td>90</td><td>80</td><td>85</td><td>80</td><td>70</td><td>65</td><td>78.3</td><td>32.0</td><td>0.85</td></tr>
+                </tbody>
+            </table>
+            <p class="results-note">SR = success rate (%, higher is better) over 20 trials per task across two operators. CT = completion time (s, over successful trials). NHT = normalized holding time, the fraction of the horizon with a stable functional grasp (higher is better).</p>
+        </div>
+
+        <!-- Selective intervention -->
+        <h3 class="section-title" style="font-size:1.5rem; margin-top:64px;">Selective Intervention</h3>
+        <p class="section-lead" style="margin-bottom:24px;">DexFLEX stays close to the operator most of the time and intervenes <strong>only when it matters</strong>: its correction magnitude spikes precisely at release, impact, scoop, and regrasp, and stays low otherwise.</p>
+        <figure class="figure">
+            <img src="assets/media/images/real_teleop_intervention.png" alt="Selective intervention during real-world tool use: per-task filmstrips with intervention-magnitude-over-time, peaking at contact-critical moments." loading="lazy" decoding="async" class="zoomable">
+            <figcaption class="caption"><b>Selective intervention during real-world tool use.</b> Per-task filmstrips with intervention magnitude over time. Peaks align with contact-critical events (release / impact / scoop / regrasp); between events the controller defers to the human, preserving operator autonomy.</figcaption>
+        </figure>
+
+        <p class="hw-note"><b>Hardware.</b> 16-DoF LEAP hand on a 7-DoF xArm; teleoperation via a Rokoko glove with a Vive tracker for wrist pose; one 10×6 FlexiTac tactile sensor per finger.</p>
+    </div>
+</section>
+
+<!-- ================= Q3: POLICY LEARNING ================= -->
+<section id="policy" class="section">
+    <div class="container reveal">
+        <h2 class="section-title">Policy Learning with a Frozen Interface</h2>
+        <p class="section-lead">Without any retraining, DexFLEX serves as the <strong>action interface</strong> for a visuomotor imitation policy, absorbing contact decisions so the policy can focus on <em>what</em> to do, not <em>how</em> to hold.</p>
+        <div class="gallery" id="policy-gallery"></div>
+        <figure class="figure" style="margin-top:48px;">
+            <img src="assets/media/images/real_policy_results.png" alt="Policy learning with different action interfaces: success on Pour Cup, Place Hammer, and Assemble Table for Direct Prediction, DexGen, and DexFLEX." loading="lazy" class="zoomable">
+            <figcaption class="caption"><b>Policy learning with different action interfaces.</b> Three contact-rich tasks, 50 demonstrations each, same image-based flow-matching policy; only the low-level action interface varies. With DexFLEX, success is <b>3.5×</b> direct joint-action prediction and <b>1.56×</b> a prior-only (DexGen) correction baseline. Baselines: Direct Joint Prediction, DexGen.</figcaption>
+        </figure>
+        <div class="callout-row">
+            <div class="callout"><div class="big">46.7%</div><div class="lbl">average success across<br>the three tasks</div></div>
+            <div class="callout"><div class="big">3.5&times;</div><div class="lbl">over direct<br>joint-action prediction</div></div>
+            <div class="callout"><div class="big">1.56&times;</div><div class="lbl">over prior-only<br>correction (DexGen)</div></div>
+        </div>
+    </div>
+</section>
+
+<!-- ================= BIBTEX ================= -->
+<section id="bibtex" class="section section-alt">
+    <div class="container reveal">
+        <h2 class="section-title">BibTeX</h2>
+        <div class="bibtex-wrap">
+            <button class="copy-btn" id="copy-btn" type="button">Copy</button>
+            <pre class="bibtex" id="bibtex-text">@inproceedings{dexflex2026anonymous,
+  title     = {DexFLEX: Contact-Aware Foundation Controller
+               for Command-Guided Dexterity},
+  author    = {Anonymous Authors},
+  booktitle = {Under review},
+  year      = {2026},
+  note      = {Paper under double-blind review}
+}</pre>
+        </div>
+    </div>
+</section>
+
+<footer class="footer">
+    <div class="container">
+        <span style="font-family:var(--font-serif);font-weight:600;color:var(--text);">Dex</span><span style="font-family:var(--font-serif);font-weight:600;color:var(--primary);">FLEX</span> <span class="sparkle">✦</span> Contact-Aware Foundation Controller for Command-Guided Dexterity<br>
+        Anonymous submission · 2026 · <a href="#top" class="totop">↑ Top</a>
+    </div>
+</footer>
+
+<!-- Lightbox overlay -->
+<div class="lightbox" id="lightbox" aria-hidden="true" role="dialog" aria-label="Enlarged figure" tabindex="-1">
+    <img src="" alt="">
+</div>
+
+<script type="text/javascript">
+(function () {
+    "use strict";
+
+    document.documentElement.classList.add("js");
+
+    var MEDIA = "assets/media/videos/";
+    var reduceMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+    // Map a video URL to its generated poster frame (same tree, .mp4 -> .jpg).
+    function posterFor(src) { return src ? src.replace("/videos/", "/posters/").replace(/\.mp4$/, ".jpg") : ""; }
+
+    function el(tag, cls, attrs) {
+        var n = document.createElement(tag);
+        if (cls) { n.className = cls; }
+        if (attrs) { Object.keys(attrs).forEach(function (k) { n.setAttribute(k, attrs[k]); }); }
+        return n;
+    }
+
+    function tryPlay(v) {
+        if (reduceMotion) { return; }            // respect reduced-motion: leave clips paused
+        var p = v.play();
+        if (p && p.catch) { p.catch(function () {}); }
+    }
+
+    // ---- Visibility-driven autoplay for muted loop clips (lazy-loads on first view) ----
+    var io = ("IntersectionObserver" in window) ? new IntersectionObserver(function (entries) {
+        entries.forEach(function (e) {
+            var v = e.target;
+            if (e.isIntersecting) {
+                if (!v.getAttribute("src") && v.dataset.src) { v.src = v.dataset.src; v.load(); }
+                tryPlay(v);
+            } else {
+                v.pause();
+            }
+        });
+    }, { threshold: 0.25 }) : null;
+
+    function armClip(v) {
+        v.muted = true; v.loop = true; v.setAttribute("playsinline", "");
+        if (v.dataset.src && !v.getAttribute("poster")) { v.setAttribute("poster", posterFor(v.dataset.src)); }
+        if (io) { io.observe(v); }
+        else { if (!v.getAttribute("src") && v.dataset.src) { v.src = v.dataset.src; v.load(); } tryPlay(v); }
+    }
+
+    // ---- Motion-primitive grid (4:3 looping tiles) ----
+    var MOTIONS = [
+        { file: "diverse_tool_use_motion/stable%20grasp.mp4", name: "Stable Grasp" },
+        { file: "diverse_tool_use_motion/regrasp.mp4",        name: "Regrasp" },
+        { file: "diverse_tool_use_motion/release.mp4",        name: "Release" },
+        { file: "diverse_tool_use_motion/reorient.mp4",       name: "Reorient" },
+        { file: "diverse_tool_use_motion/impact.mp4",         name: "Impact" },
+        { file: "diverse_tool_use_motion/Scoop.mp4",          name: "Scoop" }
+    ];
+    (function buildMotionGrid() {
+        var grid = document.getElementById("motion-grid");
+        if (!grid) { return; }
+        MOTIONS.forEach(function (m) {
+            var cell = el("figure", "motion-cell");
+            var frame = el("div", "m-frame");
+            var v = el("video", null, { preload: "none" });
+            v.dataset.src = MEDIA + m.file;
+            frame.appendChild(v);
+            var name = el("figcaption", "m-name"); name.textContent = m.name;
+            cell.appendChild(frame); cell.appendChild(name); grid.appendChild(cell);
+            armClip(v);
+        });
+    })();
+
+    // ---- Static autoplay clips already in the HTML (sim pair, hammer compare) ----
+    Array.prototype.forEach.call(document.querySelectorAll("video[data-auto]"), armClip);
+
+    // ---- Tabbed single-stage gallery (teleop + policy): 4:3, load-on-select ----
+    function buildTabbed(mountId, items) {
+        var mount = document.getElementById(mountId);
+        if (!mount) { return; }
+        var idx = 0, visible = false;
+
+        var tablist = el("div", "tabs", { role: "tablist" });
+        var stage = el("div", "stage");
+        var video = el("video", null, { preload: "none" });
+        video.muted = true; video.loop = true; video.setAttribute("playsinline", "");
+        var badge = el("span", "speed-badge");
+        stage.appendChild(video); stage.appendChild(badge);
+        var desc = el("p", "task-desc");
+        var label = el("div", "clip-label");
+
+        var tabs = items.map(function (it, i) {
+            var b = el("button", "tab" + (i === 0 ? " active" : ""), {
+                type: "button", role: "tab", "aria-selected": i === 0 ? "true" : "false"
+            });
+            b.innerHTML = it.tab;
+            b.addEventListener("click", function () { select(i, false); });
+            b.addEventListener("keydown", function (ev) {
+                if (ev.key === "ArrowRight") { ev.preventDefault(); select((idx + 1) % items.length, true); }
+                else if (ev.key === "ArrowLeft") { ev.preventDefault(); select((idx - 1 + items.length) % items.length, true); }
+            });
+            tablist.appendChild(b);
+            return b;
+        });
+
+        mount.appendChild(tablist);
+        mount.appendChild(desc);
+        mount.appendChild(stage);
+        mount.appendChild(label);
+
+        function render() {
+            var it = items[idx];
+            video.poster = posterFor(MEDIA + it.file);
+            video.src = MEDIA + it.file; video.load();
+            if (visible) { tryPlay(video); }
+            desc.textContent = it.desc || "";
+            label.innerHTML = it.label || "";
+            if (it.speed) { badge.textContent = it.speed; badge.style.display = ""; }
+            else { badge.style.display = "none"; }
+        }
+        function select(i, focus) {
+            idx = i;
+            tabs.forEach(function (b, j) {
+                var on = j === i;
+                b.classList.toggle("active", on);
+                b.setAttribute("aria-selected", on ? "true" : "false");
+            });
+            if (focus && tabs[i]) { tabs[i].focus(); }
+            render();
+        }
+
+        if ("IntersectionObserver" in window) {
+            new IntersectionObserver(function (entries) {
+                entries.forEach(function (e) {
+                    visible = e.isIntersecting;
+                    if (visible) { tryPlay(video); } else { video.pause(); }
+                });
+            }, { threshold: 0.2 }).observe(stage);
+        } else {
+            visible = true;
+        }
+        render();
+    }
+
+    var TELEOP = [
+        { tab: "Brush Sweep · 90%",   file: "real_teleop/brush_sweep_x4.mp4", desc: "Maintain a brush grasp while sweeping.",                          label: '<span class="hl">90% success</span> · 20 trials · ×4 speed', speed: "×4" },
+        { tab: "Screw Nut · 80%",     file: "real_teleop/screw_nut_x4.mp4",   desc: "Align and rotate a nut onto a bolt.",                            label: '<span class="hl">80% success</span> · 20 trials · ×4 speed', speed: "×4" },
+        { tab: "Hammer · 85%",        file: "real_teleop/hammer_x4.mp4",      desc: "Grasp and strike with impact.",                                  label: '<span class="hl">85% success</span> · 20 trials · ×4 speed', speed: "×4" },
+        { tab: "Screwdriver · 80%",   file: "real_teleop/screwdriver_x4.mp4", desc: "Grasp a screwdriver, insert it into a base, and rotate.",        label: '<span class="hl">80% success</span> · 20 trials · ×4 speed', speed: "×4" },
+        { tab: "Spatula Serve · 70%", file: "real_teleop/spatula_serve.mp4",  desc: "Scoop a hamburger with a spatula and place it on a plate.",      label: '<span class="hl">70% success</span> · 20 trials',           speed: "" },
+        { tab: "Flip Toast · 65%",    file: "real_teleop/flip_toast_x4.mp4",  desc: "Flip a toast slice with a spatula.",                             label: '<span class="hl">65% success</span> · 20 trials · ×4 speed', speed: "×4" }
+    ];
+
+    var POLICY = [
+        { tab: "Pour Cup · 60%",       file: "real_policy/Pour_Cup_4x.mp4",     desc: "Maintain a handle grasp while pouring.",                  label: '<span class="hl">60% success</span> (12/20) · ×4 speed', speed: "×4" },
+        { tab: "Place Hammer · 45%",   file: "real_policy/Place_Hammer_2x.mp4", desc: "Grasp, reorient, and place a hammer into a holder.",      label: '<span class="hl">45% success</span> (9/20) · ×2 speed',  speed: "×2" },
+        { tab: "Assemble Table · 35%", file: "real_policy/Assemble_8x.mp4",     desc: "Grasp, position, and insert parts, screwing until lit.",  label: '<span class="hl">35% success</span> (7/20) · ×8 speed',  speed: "×8" }
+    ];
+
+    buildTabbed("teleop-gallery", TELEOP);
+    buildTabbed("policy-gallery", POLICY);
+
+    // ---- Scroll-spy: highlight the nav link of the section in view ----
+    var navLinks = Array.prototype.slice.call(document.querySelectorAll(".nav-links a"));
+    var byId = {};
+    navLinks.forEach(function (a) { byId[a.getAttribute("href").slice(1)] = a; });
+    if ("IntersectionObserver" in window) {
+        var spy = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) {
+                    navLinks.forEach(function (a) { a.classList.remove("active"); });
+                    var a = byId[e.target.id];
+                    if (a) { a.classList.add("active"); }
+                }
+            });
+        }, { rootMargin: "-45% 0px -50% 0px", threshold: 0 });
+        Object.keys(byId).forEach(function (id) {
+            var s = document.getElementById(id);
+            if (s) { spy.observe(s); }
+        });
+    }
+
+    // ---- Lightbox (click-to-zoom big figures) ----
+    var lb = document.getElementById("lightbox");
+    var lbImg = lb ? lb.querySelector("img") : null;
+    function openLB(src, alt) {
+        if (!lb) { return; }
+        lbImg.src = src; lbImg.alt = alt || "";
+        lb.classList.add("open"); lb.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden"; lb.focus();
+    }
+    function closeLB() {
+        if (!lb) { return; }
+        lb.classList.remove("open"); lb.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = ""; lbImg.src = "";
+    }
+    Array.prototype.forEach.call(document.querySelectorAll("img.zoomable"), function (img) {
+        img.addEventListener("click", function () { openLB(img.currentSrc || img.src, img.alt); });
+    });
+    if (lb) {
+        lb.addEventListener("click", closeLB);
+        document.addEventListener("keydown", function (e) {
+            if (e.key === "Escape" && lb.classList.contains("open")) { closeLB(); }
+        });
+    }
+
+    // ---- Subtle scroll reveal (gated by JS + prefers-reduced-motion via CSS) ----
+    var reveals = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+    if (!reduceMotion && "IntersectionObserver" in window) {
+        var rev = new IntersectionObserver(function (entries) {
+            entries.forEach(function (e) {
+                if (e.isIntersecting) { e.target.classList.add("in-view"); rev.unobserve(e.target); }
+            });
+        }, { threshold: 0.08, rootMargin: "0px 0px -40px 0px" });
+        reveals.forEach(function (s) { rev.observe(s); });
+    } else {
+        reveals.forEach(function (s) { s.classList.add("in-view"); });
+    }
+
+    // ---- BibTeX copy ----
+    var copyBtn = document.getElementById("copy-btn");
+    if (copyBtn) {
+        copyBtn.addEventListener("click", function () {
+            var text = document.getElementById("bibtex-text").textContent;
+            var done = function () { copyBtn.textContent = "Copied!"; setTimeout(function () { copyBtn.textContent = "Copy"; }, 1600); };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done, function () { fallbackCopy(text); done(); });
+            } else { fallbackCopy(text); done(); }
+        });
+    }
+    function fallbackCopy(text) {
+        var ta = document.createElement("textarea");
+        ta.value = text; ta.style.position = "fixed"; ta.style.opacity = "0";
+        document.body.appendChild(ta); ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+    }
+})();
+</script>
 </body>
 </html>
